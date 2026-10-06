@@ -38,6 +38,9 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# กำหนดไอดีห้องที่อนุญาตให้ใช้งานระบบกาชา
+ALLOWED_CHANNEL_ID = 1556977435927511110
+
 # ==========================================
 # 3. ฐานข้อมูลตัวละคร (All-in-One)
 # ==========================================
@@ -79,10 +82,15 @@ async def on_ready():
         print(f"Sync error: {e}")
 
 # ==========================================
-# 4. คำสั่ง Slash Command สำหรับสุ่มกาชา
+# 4. คำสั่ง Slash Command สำหรับสุ่มกาชา (ล็อกห้องเฉพาะ)
 # ==========================================
 @bot.tree.command(name="gacha", description="สุ่มตู้กาชาอาโรน่า (เลือก 1 หรือ 10 ครั้ง)")
 async def gacha(interaction: discord.Interaction, count: int):
+    # ตรวจสอบว่าใช้งานในห้องที่กำหนดไว้หรือไม่
+    if interaction.channel.id != ALLOWED_CHANNEL_ID:
+        await interaction.response.send_message(f"❌ พี่คะ! คำสั่งนี้อนุญาตให้ใช้งานเฉพาะในห้องที่กำหนดไว้เท่านั้นนะคะคุณพี่!", ephemeral=True)
+        return
+
     if count not in [1, 10]:
         await interaction.response.send_message("พี่คะ! เลือกสุ่มได้แค่แบบ **1 ครั้ง** หรือ **10 ครั้ง** เท่านั้นนะคะ!", ephemeral=True)
         return
