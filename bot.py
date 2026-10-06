@@ -86,16 +86,17 @@ async def on_ready():
 # ==========================================
 @bot.tree.command(name="gacha", description="สุ่มตู้กาชาอาโรน่า (เลือก 1 หรือ 10 ครั้ง)")
 async def gacha(interaction: discord.Interaction, count: int):
+    # รีบ Defer ตั้งแต่เสี้ยววินาทีแรก ป้องกันแอปพลิเคชันไม่ตอบสนอง
+    await interaction.response.defer()
+
     # ตรวจสอบว่าใช้งานในห้องที่กำหนดไว้หรือไม่
     if interaction.channel.id != ALLOWED_CHANNEL_ID:
-        await interaction.response.send_message(f"❌ พี่คะ! คำสั่งนี้อนุญาตให้ใช้งานเฉพาะในห้องที่กำหนดไว้เท่านั้นนะคะคุณพี่!", ephemeral=True)
+        await interaction.followup.send(f"❌ พี่คะ! คำสั่งนี้อนุญาตให้ใช้งานเฉพาะในห้องที่กำหนดไว้เท่านั้นนะคะคุณพี่!", ephemeral=True)
         return
 
     if count not in [1, 10]:
-        await interaction.response.send_message("พี่คะ! เลือกสุ่มได้แค่แบบ **1 ครั้ง** หรือ **10 ครั้ง** เท่านั้นนะคะ!", ephemeral=True)
+        await interaction.followup.send("พี่คะ! เลือกสุ่มได้แค่แบบ **1 ครั้ง** หรือ **10 ครั้ง** เท่านั้นนะคะ!", ephemeral=True)
         return
-
-    await interaction.response.defer()
 
     results = []
     has_rainbow = False
