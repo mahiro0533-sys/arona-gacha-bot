@@ -1,14 +1,45 @@
+import os
+import random
+import time
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from threading import Thread
 import discord
 from discord.ext import commands
-import random
 
-# ตั้งค่า Intent ของบอท
+# ==========================================
+# 1. ระบบเว็บเซิร์ฟเวอร์สแตนด์บาย (กัน Render ตัดการทำงาน)
+# ==========================================
+class AronaKeepAliveHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        try:
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"Arona Gacha System is online and ready!")
+        except Exception:
+            pass
+
+def launch_web_server():
+    assigned_port = int(os.environ.get("PORT", 10000))
+    try:
+        web_server = HTTPServer(("0.0.0.0", assigned_port), AronaKeepAliveHandler)
+        web_server.serve_forever()
+    except Exception as err:
+        print(f"Keep-Alive Server Alert: {err}")
+
+background_worker = Thread(target=launch_web_server)
+background_worker.daemon = True
+background_worker.start()
+
+# ==========================================
+# 2. ตั้งค่า Intent และบอท Discord
+# ==========================================
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ==========================================
-# รวมฐานข้อมูลตัวละครไว้ในไฟล์นี้ไฟล์เดียวจบ!
+# 3. ฐานข้อมูลตัวละคร (All-in-One)
 # ==========================================
 char_data = {
     "three_stars": [
@@ -25,7 +56,7 @@ char_data = {
     ]
 }
 
-# ฟังก์ชันสุ่มตัวละคร 1 ตัว (3 ดาว 3%, 2 ดาว 20%, 1 ดาว 77%)
+# ฟังก์ชันสุ่มตัวละคร (3 ดาว 3%, 2 ดาว 20%, 1 ดาว 77%)
 def roll_character():
     roll = random.random()
     if roll < 0.03 and char_data["three_stars"]:
@@ -40,21 +71,23 @@ def roll_character():
 
 @bot.event
 async def on_ready():
-    print(f'Logged in as {bot.user.name} (Arona Gacha System Ready!)')
+    print(f'🚀 Logged in as {bot.user.name} (Arona Gacha System Ready & Online!)')
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} command(s)")
     except Exception as e:
-        print(e)
+        print(f"Sync error: {e}")
 
-# คำสั่งเปิดกาชา: พิมพ์ /gacha แล้วเลือก 1 หรือ 10 ครั้ง
+# ==========================================
+# 4. คำสั่ง Slash Command สำหรับสุ่มกาชา
+# ==========================================
 @bot.tree.command(name="gacha", description="สุ่มตู้กาชาอาโรน่า (เลือก 1 หรือ 10 ครั้ง)")
 async def gacha(interaction: discord.Interaction, count: int):
     if count not in [1, 10]:
         await interaction.response.send_message("พี่คะ! เลือกสุ่มได้แค่แบบ **1 ครั้ง** หรือ **10 ครั้ง** เท่านั้นนะคะ!", ephemeral=True)
         return
 
-    await interaction.response.defer() # รอประมวลผล
+    await interaction.response.defer()
 
     results = []
     has_rainbow = False
@@ -90,5 +123,12 @@ async def gacha(interaction: discord.Interaction, count: int):
 
     await interaction.followup.send(embed=embed)
 
-# อย่าลืมใส่ Token ของบอทในช่อง Environment Variables บน Render นะครับ
-# bot.run("YOUR_BOT_TOKEN")
+# ==========================================
+# 5. ระบบดึง Token และรันบอทอย่างปลอดภัย
+# ==========================================
+BOT_SECRET_TOKEN = os.environ.get("DISCORD_TOKEN")
+
+if BOT_SECRET_TOKEN:
+    bot.run(BOT_SECRET_TOKEN)
+else:
+    print("❌ Critical Error: ไม่พบค่า DISCORD_TOKEN ในระบบ Environment Variables โปรดตรวจสอบการตั้งค่าบน Render อีกครั้งครับ!")
